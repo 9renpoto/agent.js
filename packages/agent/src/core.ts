@@ -77,7 +77,7 @@ const pathname2href = (pathname: string) =>
 export default class AgentCore extends Store {
   public observer: UIEventObserver
   private baseUrl: string
-  private cache: { a: object; l: object; [key: string]: object }
+  private cache: { a: (Interact | object); l: (Interact | object); [key: string]: object }
   private emitter: EventEmitter
   private events: AgentEvent[]
   private interactId: number
@@ -205,7 +205,6 @@ export default class AgentCore extends Store {
         this.interacts.push(cache)
       }
     })
-
     this.clear()
     this.send([])
 

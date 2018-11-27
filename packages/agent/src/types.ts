@@ -100,18 +100,18 @@ export type State = {
 
 export type InteractionType = 'l' | 'a'
 
-export type EventPosition = {
+export type InteractionPosition = {
   readonly x: number
   readonly y: number
 }
 
-export type EventOffset = {
+export type InteractionOffset = {
   readonly top: number
   readonly left: number
 }
 
-export type EventData = EventPosition & EventOffset
-export type InteractionEvent = EventData & {
+export type InteractionData = InteractionPosition & InteractionOffset
+export type InteractionEvent = InteractionData & {
   id: number
   type: InteractionType
 }

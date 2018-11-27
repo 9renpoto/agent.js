@@ -11,10 +11,9 @@ import {
   MAX_INTERACTION_SEQ
 } from './constants'
 import {
-  EventData,
-  EventPosition,
   EventType,
-  InteractionEvent,
+  InteractionData,
+  InteractionPosition,
   InteractionType
 } from './types'
 
@@ -29,13 +28,14 @@ function getFirstTouch (event: TouchEvent): Touch {
 export default class InteractionEventEmitter extends EventEmitter {
   private bound: boolean
 
-  private latestLookPosition: EventData | undefined
-  private latestActionPosition: EventData | undefined
+  private latestLookPosition?: InteractionData
+  private latestActionPosition?: InteractionData
   private sequentialNumber: number
+  private observer: UIEventObserver
   private intervals: number[]
 
-  private observer: UIEventObserver
-  private touchedElement: EventTarget | undefined
+  // For touch events
+  private touchedElement?: EventTarget
   private touchMoved: boolean
 
   constructor () {
@@ -56,9 +56,9 @@ export default class InteractionEventEmitter extends EventEmitter {
   public bind () {
     if (!this.bound) {
       // TODO Bind DOM events
-      this.bindEvent('ontouchstart', 'touchstart', this.handleTouchStart)
-      this.bindEvent('ontouchmove', 'touchmove', this.handleTouchMove)
-      this.bindEvent('ontouchend', 'touchend', this.handleTouchEnd)
+      this.bindEvent('touchstart')
+      this.bindEvent('touchmove')
+      this.bindEvent('touchend')
       this.bound = true
       this.emitInteract()
     }
@@ -67,23 +67,33 @@ export default class InteractionEventEmitter extends EventEmitter {
   public unbind () {
     if (this.bound) {
       this.observer.unsubscribeAll()
-      // TODO Unbind DOM events
       this.bound = false
     }
   }
 
   protected bindEvent (
-    listener: string,
-    eventName: EventType,
-    handler: (event: MouseEvent | TouchEvent | PointerEvent) => void
+    eventName: EventType
   ) {
     const target = window.addEventListener ? window : document.body
-    if (listener in target) {
-      this.observer.subscribe(target, eventName, (event: MouseEvent | TouchEvent | PointerEvent) => {
+    let listener: string | undefined
+    let handler: ((event: Event) => void) | undefined
+    switch (eventName) {
+      case 'touchstart':
+        listener = 'ontouchstart'
+        handler = (event: Event) => (this.handleTouchStart(event as TouchEvent))
+        break
+      default:
+        listener = undefined
+        handler = undefined
+    }
+    if (listener && listener in target && handler !== undefined) {
+      this.observer.subscribe(target, eventName, (handler: (event: Event) => void) => {
         try {
-          handler(event)
+          if (event !== undefined) {
+            handler(event)
+          }
         } catch (error) {
-          throw error
+          throw error // TODO Log error
         }
       })
     }
@@ -91,7 +101,7 @@ export default class InteractionEventEmitter extends EventEmitter {
 
   protected updateLatestPosition (
     interactionType: InteractionType,
-    position: EventPosition
+    position: InteractionPosition
   ) {
     if (position.x >= 0 && position.y >= 0) {
       const { left, top } = getOffset(window)
@@ -131,29 +141,28 @@ export default class InteractionEventEmitter extends EventEmitter {
   protected handleTouchMove (event: TouchEvent) {
     this.touchMoved = true
     this.touchedElement = undefined
-    if (event !== undefined) {
-      const touch = getFirstTouch(event)
-      if (touch) {
-        this.updateLatestPosition(
-          INTERACTION_TYPE_LOOK,
-          {
-            y: touch.pageY,
-            x: touch.pageX
-          }
-        )
-      }
+    const touch = getFirstTouch(event)
+    if (touch) {
+      this.updateLatestPosition(
+        INTERACTION_TYPE_LOOK,
+        {
+          y: touch.pageY,
+          x: touch.pageX
+        }
+      )
     }
   }
 
   protected handleTouchEnd (event: TouchEvent) {
-    const touchedElement = getTargetElementFromEvent(event)
+    const targetElement = getTargetElementFromEvent(event)
     if (
-      event !== undefined &&
+      targetElement &&
       this.touchedElement !== undefined &&
-      !this.touchMoved &&
-      this.touchedElement === touchedElement
+      this.touchedElement === targetElement &&
+      !this.touchMoved
     ) {
       const touch = getFirstTouch(event)
+      this.latestActionPosition = undefined
       if (touch) {
         this.updateLatestPosition(
           INTERACTION_TYPE_ACTION,
@@ -163,19 +172,17 @@ export default class InteractionEventEmitter extends EventEmitter {
           }
         )
       }
-      this.latestActionPosition = undefined
     }
-    this.touchedElement = undefined
   }
 
   protected emitInteractByType (
     interactionType: InteractionType,
-    interactionEvent: EventData | undefined
+    interactionData?: InteractionData
   ) {
-    if (interactionEvent !== undefined) {
+    if (interactionData !== undefined) {
       this.emit(
         interactionType,
-        objectAssign({}, interactionEvent, {
+        objectAssign({}, interactionData, {
           id: this.sequentialNumber,
           type: interactionType
         })
@@ -184,19 +191,15 @@ export default class InteractionEventEmitter extends EventEmitter {
   }
 
   protected emitInteract () {
-    if (this.sequentialNumber > MAX_INTERACTION_SEQ) {
-      this.emitInteractByType(INTERACTION_TYPE_LOOK, this.latestLookPosition)
-      this.emitInteractByType(INTERACTION_TYPE_ACTION, this.latestActionPosition)
-      this.latestActionPosition = undefined
-    }
-    this.sequentialNumber++
-
     if (this.bound) {
-      const delayMilliseconds = this.intervals.shift()
-
-      if (delayMilliseconds !== undefined && delayMilliseconds >= 0) {
-        setTimeout(this.emitInteract.bind(this), delayMilliseconds * 1000)
+      if (this.sequentialNumber <= MAX_INTERACTION_SEQ) {
+        this.emitInteractByType(INTERACTION_TYPE_LOOK, this.latestLookPosition)
+        this.emitInteractByType(INTERACTION_TYPE_ACTION, this.latestActionPosition)
+        this.latestActionPosition = undefined
       }
+      this.sequentialNumber++
+
+      setTimeout(this.emitInteract.bind(this), 2 * 1000)
     }
   }
 }
