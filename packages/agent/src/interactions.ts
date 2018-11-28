@@ -39,10 +39,10 @@ class InteractionEventEmitter extends EventEmitter {
     super()
     this.bound = false
     this.observer = new UIEventObserver() // singleton
-    this.initialize()
+    this.init()
   }
 
-  public initialize (): void {
+  public init (): void {
     // Call for each page views
     this.latestLookPosition = undefined
     this.latestActionPosition = undefined

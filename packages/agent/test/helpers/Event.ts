@@ -1,4 +1,4 @@
-import { EventType, InteractType } from '../../src/types'
+import { EventType, InteractionType } from '../../src/types'
 
 export function createEvent (eventName: EventType): Event {
   let e
@@ -11,7 +11,7 @@ export function createEvent (eventName: EventType): Event {
   return e
 }
 
-export function getType (type: EventType): InteractType {
+export function getType (type: EventType): InteractionType {
   switch (type) {
     case 'click':
     case 'touchend':
