@@ -4,13 +4,13 @@ import { EventEmitter } from 'events'
 import { getOffset, validate } from './browser'
 import { LISTENER, SCROLL } from './constants'
 import { CustomError, error, raise, warning } from './logger'
-import { EventType, InteractType, Point } from './types'
+import { EventType, InteractionType, Point } from './types'
 
 export interface AgentEventBase {
   on (
     eventName: EventType,
     handler: (e: Event) => void,
-    type: InteractType
+    type: InteractionType
   ): void
   off (): void
 }
@@ -23,7 +23,7 @@ export default class Events implements AgentEventBase {
   private observer: any
   private emitter: EventEmitter
   private name: string
-  private type: InteractType
+  private type: InteractionType
   constructor (
     emitName: string,
     eventEmitter: EventEmitter,
@@ -36,7 +36,7 @@ export default class Events implements AgentEventBase {
   public on (
     eventName: EventType,
     handler: (event: any /* FIXME Event type */) => void,
-    type: InteractType
+    type: InteractionType
   ): void {
     if (typeof handler !== 'function' || !(type === 'a' || type === 'l')) {
       return raise('please override on')
@@ -73,14 +73,14 @@ export default class Events implements AgentEventBase {
       return
     }
 
-    const { x, y } = getOffset(window)
+    const { left, top } = getOffset(window)
 
     this.emitter.emit(
       this.name,
       objectAssign({}, data, {
         type: this.type,
-        left: x,
-        top: y
+        left,
+        top
       })
     )
   }

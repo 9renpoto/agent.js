@@ -4,8 +4,8 @@ import EventBase from '../events'
 import { Point } from '../types'
 
 function getPotision (w: Window): Point {
-  const { x, y } = getOffset(w)
-  return { x: x + w.innerWidth / 2, y: y + w.innerHeight / 2 }
+  const { left, top } = getOffset(w)
+  return { x: left + w.innerWidth / 2, y: top + w.innerHeight / 2 }
 }
 
 const eventName = 'scroll'

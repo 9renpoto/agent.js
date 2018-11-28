@@ -23,7 +23,7 @@ function getFirstTouch (event: TouchEvent): Touch {
   return event.changedTouches ? event.changedTouches[0] : event.touches[0]
 }
 
-export default class InteractionEventEmitter extends EventEmitter {
+class InteractionEventEmitter extends EventEmitter {
   private bound: boolean
 
   private observer: UIEventObserver
@@ -197,3 +197,4 @@ export default class InteractionEventEmitter extends EventEmitter {
     }
   }
 }
+export default InteractionEventEmitter
