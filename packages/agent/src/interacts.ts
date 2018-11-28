@@ -7,7 +7,6 @@ import { getOffset } from './browser'
 import {
   INTERACTION_TYPE_ACTION,
   INTERACTION_TYPE_LOOK,
-  INTERVAL as INTERACTION_INTERVALS,
   MAX_INTERACTION_SEQ
 } from './constants'
 import {
@@ -28,11 +27,10 @@ function getFirstTouch (event: TouchEvent): Touch {
 export default class InteractionEventEmitter extends EventEmitter {
   private bound: boolean
 
+  private observer: UIEventObserver
+  private sequentialNumber: number
   private latestLookPosition?: InteractionData
   private latestActionPosition?: InteractionData
-  private sequentialNumber: number
-  private observer: UIEventObserver
-  private intervals: number[]
 
   // For touch events
   private touchedElement?: EventTarget
@@ -50,15 +48,40 @@ export default class InteractionEventEmitter extends EventEmitter {
     this.latestLookPosition = undefined
     this.latestActionPosition = undefined
     this.sequentialNumber = 0
-    this.intervals = INTERACTION_INTERVALS.concat()
   }
 
   public bind () {
+    const eventHandlerMap: { [eventName: string]: { listener: string, handler: (event: Event) => void } } = {
+      'touchstart': {
+        listener: 'ontouchstart',
+        handler: (event: Event) => (this.handleTouchStart(event as TouchEvent))
+      },
+      'touchmove': {
+        listener: 'ontouchmove',
+        handler: (event: Event) => (this.handleTouchMove(event as TouchEvent))
+      },
+      'touchend': {
+        listener: 'ontouchend',
+        handler: (event: Event) => (this.handleTouchEnd(event as TouchEvent))
+      }
+    }
+
     if (!this.bound) {
-      // TODO Bind DOM events
-      this.bindEvent('touchstart')
-      this.bindEvent('touchmove')
-      this.bindEvent('touchend')
+      const target = window.addEventListener ? window : document.body
+      for (const eventName in eventHandlerMap) {
+        if (eventHandlerMap.hasOwnProperty(eventName)) {
+          const { listener, handler } = eventHandlerMap[eventName]
+          listener in target && this.observer.subscribe(target, eventName, (event: Event) => {
+            try {
+              if (event !== undefined) {
+                handler(event)
+              }
+            } catch (error) {
+              throw error // TODO Log error
+            }
+          })
+        }
+      }
       this.bound = true
       this.emitInteract()
     }
@@ -68,34 +91,6 @@ export default class InteractionEventEmitter extends EventEmitter {
     if (this.bound) {
       this.observer.unsubscribeAll()
       this.bound = false
-    }
-  }
-
-  protected bindEvent (
-    eventName: EventType
-  ) {
-    const target = window.addEventListener ? window : document.body
-    let listener: string | undefined
-    let handler: ((event: Event) => void) | undefined
-    switch (eventName) {
-      case 'touchstart':
-        listener = 'ontouchstart'
-        handler = (event: Event) => (this.handleTouchStart(event as TouchEvent))
-        break
-      default:
-        listener = undefined
-        handler = undefined
-    }
-    if (listener && listener in target && handler !== undefined) {
-      this.observer.subscribe(target, eventName, (handler: (event: Event) => void) => {
-        try {
-          if (event !== undefined) {
-            handler(event)
-          }
-        } catch (error) {
-          throw error // TODO Log error
-        }
-      })
     }
   }
 
