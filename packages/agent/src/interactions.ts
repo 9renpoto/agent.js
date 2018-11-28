@@ -10,7 +10,6 @@ import {
   MAX_INTERACTION_SEQ
 } from './constants'
 import {
-  EventType,
   InteractionData,
   InteractionPosition,
   InteractionType
