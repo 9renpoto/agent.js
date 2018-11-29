@@ -26,6 +26,7 @@ function getFirstTouch (event: TouchEvent): Touch {
 class InteractionEventEmitter extends EventEmitter {
   private bound: boolean
 
+  private target: Window | HTMLElement
   private observer: UIEventObserver
   private sequentialNumber: number
   private latestLookPosition?: InteractionData
@@ -35,8 +36,9 @@ class InteractionEventEmitter extends EventEmitter {
   private touchedElement?: EventTarget
   private touchMoved: boolean
 
-  constructor () {
+  constructor (target: Window | HTMLElement) {
     super()
+    this.target = target
     this.bound = false
     this.observer = new UIEventObserver() // singleton
     this.init()
@@ -66,11 +68,10 @@ class InteractionEventEmitter extends EventEmitter {
     }
 
     if (!this.bound) {
-      const target = window.addEventListener ? window : document.body
       for (const eventName in eventHandlerMap) {
         if (eventHandlerMap.hasOwnProperty(eventName)) {
           const { listener, handler } = eventHandlerMap[eventName]
-          listener in target && this.observer.subscribe(target, eventName, (event: Event) => {
+          listener in this.target && this.observer.subscribe(this.target, eventName, (event: Event) => {
             try {
               if (event !== undefined) {
                 handler(event)
@@ -114,8 +115,10 @@ class InteractionEventEmitter extends EventEmitter {
   }
 
   protected handleTouchStart (event: TouchEvent): void {
+    throw Error('1')
     this.touchMoved = false
     if (event !== undefined) {
+      throw Error('2')
       const touchedElement = getTargetElementFromEvent(event)
       if (touchedElement) {
         const touch = getFirstTouch(event)

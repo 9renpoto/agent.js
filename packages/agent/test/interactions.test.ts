@@ -2,23 +2,24 @@ import * as assert from 'assert'
 import * as sinon from 'sinon'
 
 import {
-  INTERACTION_TYPE_ACTION,
   INTERACTION_TYPE_LOOK
 } from '../src/constants'
 import InteractionEventEmitter from '../src/interactions'
 
 describe('interacts', () => {
   it('init', () => {
-    const instance: InteractionEventEmitter = new InteractionEventEmitter()
+    const target = window.addEventListener ? window : document.body
+    const instance: InteractionEventEmitter = new InteractionEventEmitter(target)
     assert(typeof instance.bind === 'function')
     assert(typeof instance.unbind === 'function')
     assert(typeof instance.init === 'function')
   })
 
-  it('emit look when touch start', () => {
+  it('emit look when touchstart', () => {
     const spy = sinon.spy()
-    const instance: InteractionEventEmitter = new InteractionEventEmitter()
+    const clock = sinon.useFakeTimers()
     const target = window.addEventListener ? window : document.body
+    const instance: InteractionEventEmitter = new InteractionEventEmitter(target)
     const touchstartEvent = new TouchEvent('touchstart', {
       touches: [
         new Touch({
@@ -38,6 +39,10 @@ describe('interacts', () => {
 
     instance.on(INTERACTION_TYPE_LOOK, spy)
     target.dispatchEvent(touchstartEvent)
+    sinon.assert.notCalled(spy)
+    clock.tick(3000)
     sinon.assert.calledOnce(spy)
+
+    clock.restore()
   })
 })
